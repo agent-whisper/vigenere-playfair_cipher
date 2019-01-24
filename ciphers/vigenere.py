@@ -46,8 +46,8 @@ class Vigenere:
       square = vigenere_square
       if len(vigenere_square) == 0:
         square = self._generate_random_square()
+        self._write_square(square)
       ciphertext = self.encipher(plaintext, key, isFullType=True, vigenere_square=square)
-      self._write_square(square)
     except KeyError as e:
       print('[vigenere.full_encipher] Error reading vigenere square: ' + str(e))
     return ciphertext
