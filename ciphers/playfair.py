@@ -6,56 +6,84 @@ class Playfair:
   def __init__(self):
     self.ASCII_OFFSET = 65
   
-  def encipher(self, plain_text, key, removed_char, placeholder_char):
+  def encipher(self, plain_text, key, removed_char, placeholder_char, no_punc=True, no_space=True, plaintext_display_len=100):
     square_key = self._generate_square_key(key, removed_char)
-    preprocessed_plain_text = self._preprocess_input_text(plain_text, removed_char)
-    
+    preprocessed_plain_text = self._preprocess_input_text(plain_text, removed_char, no_punc, no_space)
+    if (len(preprocessed_plain_text) > plaintext_display_len):
+      print('PLAINTEXT:\n%s...' % (preprocessed_plain_text[:plaintext_display_len]))
+    else:
+      print('PLAINTEXT:\n%s' % (preprocessed_plain_text))
     cursor = 0
     cipher_text = ''
     while cursor < len(preprocessed_plain_text):
+      in_between_text = ''
+      preceeding_text = ''
       offset = 1
       new_char1 = ''
       new_char2 = ''
       try:
         char1 = preprocessed_plain_text[cursor]
+        while not(self.is_alphabet(char1)):
+          preceeding_text += char1
+          cursor += 1
+          char1 = preprocessed_plain_text[cursor]
         char2 = preprocessed_plain_text[cursor + offset]
+        while (not(self.is_alphabet(char2))):
+          in_between_text += char2
+          offset += 1
+          char2 = preprocessed_plain_text[cursor + offset]
         new_char1, new_char2, forward_steps = self._encrypt_character_pair(
             char1, char2, square_key, placeholder_char
         )
       except IndexError:
-        # Final plain text has odd number of alphabets
-        new_char1, new_char2, forward_steps = self._encrypt_character_pair(
-            char1, placeholder_char, square_key, placeholder_char
-        )
-      cipher_text += new_char1 + new_char2
+        if self.is_alphabet(char1):
+          # Final plain text has odd number of alphabets
+          new_char1, new_char2, forward_steps = self._encrypt_character_pair(
+              char1, placeholder_char, square_key, placeholder_char
+          )
+        else:
+          pass
+      cipher_text += preceeding_text + new_char1 + in_between_text + new_char2
       cursor += (forward_steps + (offset - 1))
     return cipher_text
 
-  def decipher(self, cipher_text, key, removed_char, placeholder_char):
+  def decipher(self, cipher_text, key, removed_char, placeholder_char, no_punc=True, no_space=True):
     square_key = self._generate_square_key(key, removed_char)
-    preprocessed_cipher_text = self._preprocess_input_text(cipher_text, removed_char)
+    preprocessed_cipher_text = self._preprocess_input_text(cipher_text, removed_char, no_punc=no_punc, no_space=no_space)
     cursor = 0
-    cipher_text = ''
+    plaintext = ''
     while cursor < len(preprocessed_cipher_text):
       offset = 1
       new_char1 = ''
       new_char2 = ''
-      
-      # cipher text should always has even number of character
-      char1 = preprocessed_cipher_text[cursor]
+      in_between_text = ''
+      preceeding_text = ''
+
       try:
+        # cipher text should always has even number of character
+        char1 = preprocessed_cipher_text[cursor]
+        while not(self.is_alphabet(char1)):
+            preceeding_text += char1
+            cursor += 1
+            char1 = preprocessed_cipher_text[cursor]
+        char2 = preprocessed_cipher_text[cursor + offset]
+        while (not(self.is_alphabet(char2))):
+          in_between_text += char2
+          offset += 1
           char2 = preprocessed_cipher_text[cursor + offset]
+        
       except IndexError:
-          print('decipher:')
-          print(char1)
-          print(cursor)
-          print(offset)
-      new_char1, new_char2, forward_steps = self._decrypt_character_pair(char1, char2, square_key, placeholder_char)
+        print('decipher:')
+        print(char1)
+        print(cursor)
+        print(offset)
+      else:
+        new_char1, new_char2, forward_steps = self._decrypt_character_pair(char1, char2, square_key, placeholder_char)
       
-      cipher_text += new_char1 + new_char2
+      plaintext += preceeding_text + new_char1 + in_between_text + new_char2
       cursor += (forward_steps + (offset - 1))
-    cipher_text = self._decryption_postprocessing(cipher_text, placeholder_char)
-    return cipher_text
+    plaintext = self._decryption_postprocessing(plaintext, placeholder_char)
+    return plaintext
 
   def _generate_square_key(self, key, removed_char):
     alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -76,21 +104,24 @@ class Playfair:
     y = int(letter_idx / 5)
     return x, y
   
-  def _preprocess_input_text(self, plain_text, removed_char):
+  def _preprocess_input_text(self, plain_text, removed_char, no_punc, no_space):
     removed_char_idx = ord(removed_char) - self.ASCII_OFFSET
     replacement_char_idx = (removed_char_idx - 1) % 26
     replacement_char = chr(replacement_char_idx + self.ASCII_OFFSET)
 
     preprocessed_plain_text = plain_text.upper()
     preprocessed_plain_text = preprocessed_plain_text.replace(removed_char, replacement_char)
-    preprocessed_plain_text = self._remove_foreign_characters(preprocessed_plain_text)
+    if not(no_punc and no_space):
+      preprocessed_plain_text = self._remove_foreign_characters(preprocessed_plain_text, no_punc, no_space)
     return preprocessed_plain_text
 
-  def _remove_foreign_characters(self, text):
+  def _remove_foreign_characters(self, text, no_punc, no_space):
     result = ''
     for c in text:
       c_idx = ord(c)
-      if (c_idx < 65 or c_idx > 90):
+      if (c_idx == 32) and no_space:
+        continue
+      elif (c_idx < 65 or c_idx > 90) and no_punc:
         continue
       result += c
     return result
@@ -164,37 +195,58 @@ class Playfair:
 
   def _decryption_postprocessing(self, cipher_text, placeholder_char):
     cursor = 0
-    postprocessed_plain_text = ''
+    output_text = ''
     while cursor < len(cipher_text):
+      preceeding_text = ''
+      in_between_text = ''
+      potential_in_between_text = ''
+      offset = 1
+      offset_2 = 0
       current_char = cipher_text[cursor]
+      while not(self.is_alphabet(current_char)):
+        preceeding_text += current_char
+        cursor += 1
+        current_char = cipher_text[cursor]
       try:
-        next_char = cipher_text[cursor+1]
+        next_char = cipher_text[cursor + offset]
+        while not(self.is_alphabet(next_char)):
+          in_between_text += next_char
+          offset += 1
+          next_char = cipher_text[cursor + offset]
+
         if (current_char != placeholder_char and next_char == placeholder_char):
           # next_char maybe a placeholder
           try:
-            next_next_char = cipher_text[cursor+2]
+            offset_2 += 1
+            next_next_char = cipher_text[cursor + offset + offset_2]
+            while not(self.is_alphabet(next_next_char)):
+              potential_in_between_text += next_next_char
+              offset_2 += 1
+              next_next_char = cipher_text[cursor + offset + offset_2]
             if (current_char == next_next_char):
               # next_char is placeholder character
-              postprocessed_plain_text += (current_char + '')
-              cursor += 2
+              output_text += (preceeding_text + current_char + in_between_text + potential_in_between_text)
+              cursor += (offset + offset_2)
               continue
           except IndexError:
             # Check if placeholder at the end is a padding
-            if (len(postprocessed_plain_text) % 2 == 1):
-              postprocessed_plain_text += (current_char)
-              cursor = len(cipher_text)
-              continue
+            output_text += (preceeding_text + current_char + in_between_text + potential_in_between_text)
+            cursor = len(cipher_text)
+            continue
         elif (current_char == placeholder_char and next_char == placeholder_char):
           pass  
-        postprocessed_plain_text += (current_char + next_char)
+        output_text += (preceeding_text + current_char + in_between_text + next_char + potential_in_between_text)
       except IndexError:
         # Check... something?
-        pass
-      cursor += 2
-    return postprocessed_plain_text
+        output_text += preceeding_text + in_between_text
+      cursor += (offset + offset_2 + 1)
+    return output_text
 
   def _write_square_key(self, square_key, filename):
     sk = {}
     sk['square_key'] = list(square_key)
     with open(filename, 'w+') as f:
       json.dump(sk, f)
+
+  def is_alphabet(self, ch):
+    return (ord(ch) >= 65 and ord(ch) <= 90)

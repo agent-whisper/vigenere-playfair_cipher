@@ -37,12 +37,17 @@ def main(argv):
     ciphertext = ExtendedVigenere().encipher(plaintext, key)
   elif cipher_type == 5:
     print("\n==== USING PLAYFAIR CIPHER ====\n")
-    print('NOTE: This cipher only has no_space (default) and grouped display-mode.\n')
+    no_punc = True
+    no_space = True
     if display_type == 0:
-      display_type = 1
+      no_punc = False
+      no_space = False
+    elif display_type == 1:
+      no_punc = False
+
     removed_char = input('Masukkan huruf yang dihilangkan > ').upper()
     placeholder_char = input('Masukkan huruf penyisip > ').upper()
-    ciphertext = Playfair().encipher(plaintext, key, removed_char, placeholder_char)
+    ciphertext = Playfair().encipher(plaintext, key, removed_char, placeholder_char, no_punc=no_punc, no_space=no_space)
   
   if hasattr(ciphertext, 'decode'):
     # ciphertext is in bytes
@@ -53,7 +58,7 @@ def main(argv):
   else:
     # ciphertext is a string
     ciphertext = arrange_output(ciphertext, display_type)
-    print('Encryption result:\n' + ciphertext + '\n')
+    print('\nENCRYPTION RESULT:\n' + ciphertext + '\n')
     save_output(ciphertext, ofile)
 
 if __name__ == '__main__':
