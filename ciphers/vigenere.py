@@ -9,11 +9,11 @@ class Vigenere:
     # Decimal value of A in ASCII
     self.ASCII_OFFSET = 65
     
-  def encipher(self, plaintext, key, isFullType=False, vigenere_square={}):
+  def encipher(self, plaintext, key, isFullType=False, vigenere_square={}, plaintext_display_len=100):
     plaintext = plaintext.upper()
     key = key.upper()
-    if len(plaintext) > 20:
-      print('Plaintext:\n' + plaintext[:20] + '...\n')
+    if len(plaintext) > plaintext_display_len:
+      print('Plaintext:\n' + plaintext[:plaintext_display_len] + '...\n')
     else:
       print('Plaintext:\n' + plaintext + '\n')
     print('Key:\n' + key + '\n')
@@ -23,12 +23,10 @@ class Vigenere:
     for plain_char in plaintext:
       key_char = key[key_idx % key_length]
       p = ord(plain_char)
-      if not((p >= 65 and p <= 90) or p == 32):
+      if not(p >= 65 and p <= 90):
         # character is not in range of A - Z
+        ciphertext += plain_char
         continue
-      if (p == 32):
-        # character is a space
-        ciphertext += ' '
       else:
         if (isFullType):
           cipher_char = self._full_p_to_c(plain_char, key_char, vigenere_square)
@@ -59,9 +57,9 @@ class Vigenere:
   def running_key_enchiper(self, plaintext, key):
     return self.encipher(plaintext, key)
 
-  def decipher(self, ciphertext, key, isFullType=False, vigenere_square={}):
-    if len(ciphertext) > 20:
-      print('Ciphertext:\n' + ciphertext[:20] + '...\n')
+  def decipher(self, ciphertext, key, isFullType=False, vigenere_square={}, ciphertext_display_len=100):
+    if len(ciphertext) > ciphertext_display_len:
+      print('Ciphertext:\n' + ciphertext[:ciphertext_display_len] + '...\n')
     else:
       print('Ciphertext:\n' + ciphertext + '\n')
     if len(key) > 20:
@@ -75,12 +73,10 @@ class Vigenere:
     for cipher_char in ciphertext:
       key_char = key[key_idx % key_length]
       c = ord(cipher_char)
-      if not((c >= 65 and c <= 90) or c == 32):
+      if not(c >= 65 and c <= 90):
         # character is not in range of A - Z
+        plaintext += cipher_char
         continue
-      if (c == 32):
-        # character is a space
-        plaintext += ' '
       else:
         if (isFullType):
           plain_char = self._full_c_to_p(cipher_char, key_char, vigenere_square)

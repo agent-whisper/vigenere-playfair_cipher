@@ -165,7 +165,7 @@ def arrange_output(text, display_type):
     group_count = 0
     arranged_text = ''
     for c in text:
-      if c == ' ':
+      if not(ord(c) >= 65 and ord(c) <= 90):
         continue
       arranged_text += c
       group_count = (group_count + 1) % 5
