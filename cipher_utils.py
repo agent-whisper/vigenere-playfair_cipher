@@ -85,6 +85,7 @@ def read_input(ifile, text_type):
       print('%s file read successfully' % (text_type.upper()))
     except FileNotFoundError:
       print('[main] %s file not found' % (text_type.upper()))
+      sys.exit()
   return plaintext.upper()
 
 def read_input_bytes(ifile, text_type):
